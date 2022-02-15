@@ -102,6 +102,7 @@ export default class Scene {
    */
   setControls() {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    this.controls.autoRotate = true
   }
 
   /**
@@ -195,7 +196,7 @@ export default class Scene {
     //   // shader.fragmentShader.replace()
     // }
 
-    this.grainMaterial = this.customPhongMaterial
+    this.grainMaterial = this.customMaterial
   }
 
   setLight() {
