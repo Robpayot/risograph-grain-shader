@@ -143,20 +143,8 @@ export default class Scene {
       uAlpha: {
         value: this.guiController.uAlpha,
       },
-      uTime: {
-        value: 1.0,
-      },
-      uFract: {
-        value: this.guiController.uFract,
-      },
       uResolution: {
         value: new THREE.Vector2(window.innerWidth / 40, window.innerHeight / 40),
-      },
-      uPattern: {
-        value: this.guiController.uPattern,
-      },
-      uPlain: {
-        value: this.guiController.uPlain,
       },
     }
 
@@ -168,6 +156,21 @@ export default class Scene {
       {
         uNoiseMin: {
           value: this.guiController.uNoiseMin,
+        },
+      },
+      {
+        uNoiseCoef: {
+          value: this.guiController.uNoiseCoef,
+        },
+      },
+      {
+        uNoiseMax: {
+          value: this.guiController.uNoiseMax,
+        },
+      },
+      {
+        uResolution: {
+          value: new THREE.Vector2(window.innerWidth / 40, window.innerHeight / 40),
         },
       },
     ])
@@ -192,12 +195,13 @@ export default class Scene {
     //   // shader.fragmentShader.replace()
     // }
 
-    this.grainMaterial = this.customMaterial
+    this.grainMaterial = this.customPhongMaterial
   }
 
   setLight() {
-    const spotLight = new THREE.SpotLight(0xffffff)
+    const spotLight = new THREE.SpotLight(0xff0000)
     spotLight.position.set(10, 10, 10)
+    spotLight.intensity = 2
     this.scene.add(spotLight)
   }
 

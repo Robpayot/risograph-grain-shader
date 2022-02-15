@@ -70,7 +70,7 @@ void main() {
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>
 
-	float mdf = clamp(uNoiseMin, uNoiseMax, pow(outgoingLight, uNoiseCoef));
+	float mdf = clamp(uNoiseMin, uNoiseMax, pow(outgoingLight.r, uNoiseCoef));
   vec2 st = gl_FragCoord.xy / uResolution.xy;
   st *= 55.; // old 55
 
