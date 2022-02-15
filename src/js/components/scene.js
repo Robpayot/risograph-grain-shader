@@ -4,8 +4,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'stats-js'
 import deer from '../../models/deer.obj'
 import glsl from 'glslify'
-import vertexShader from '~shaders/lightgrain.vert'
-import fragmentShader from '~shaders/lightgrain.frag'
+import vertexShaderPhong from '~shaders/lightgrain.vert'
+import fragmentShaderPhong from '~shaders/lightgrain.frag'
+import vertexShader from '~shaders/grain.vert'
+import fragmentShader from '~shaders/grain.frag'
 
 // const ASSETS = 'img/'
 
@@ -19,7 +21,7 @@ export default class Scene {
   width
   height
   guiController = {
-    uLightIntensity: 2,
+    uLightIntensity: 1,
     uNoiseCoef: 3.3,
     uNoiseMin: 0.76,
     uNoiseMax: 22.09,
@@ -115,7 +117,7 @@ export default class Scene {
     this.currentColor = { r: 116, g: 156, b: 255 }
     this.uniforms = {
       uLightPos: {
-        value: [new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1)], // array of vec3
+        value: [new THREE.Vector3(0, 5, 1), new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1)], // array of vec3
       },
       uLightColor: {
         value: [new THREE.Color(0xffffff), new THREE.Color(0xffffff), new THREE.Color(0xffffff)], // color
@@ -163,16 +165,25 @@ export default class Scene {
       THREE.ShaderLib.phong.uniforms,
       { diffuse: { value: new THREE.Color(0xff0000) } },
       { time: { value: 0.0 } },
+      {
+        uNoiseMin: {
+          value: this.guiController.uNoiseMin,
+        },
+      },
     ])
 
-    console.log(THREE.ShaderLib.phong.uniforms)
-
-    this.customMaterial = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
+    this.customPhongMaterial = new THREE.ShaderMaterial({
+      vertexShader: glsl(vertexShaderPhong),
+      fragmentShader: glsl(fragmentShaderPhong),
       uniforms: customUniforms,
       lights: true,
       // name: 'custom-material',
+    })
+
+    this.customMaterial = new THREE.RawShaderMaterial({
+      vertexShader: glsl(vertexShader),
+      fragmentShader: glsl(fragmentShader),
+      uniforms: this.uniforms,
     })
     // this.grainMaterial = new THREE.MeshPhongMaterial({ color: 0x0000ff })
     // this.grainMaterial.onBeforeCompile = shader => {

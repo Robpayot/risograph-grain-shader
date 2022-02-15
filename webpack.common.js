@@ -39,7 +39,11 @@ module.exports = {
       },
       {
         test: /\.(glsl|vs|fs|vert|frag)$/,
-        use: ['webpack-glsl-loader'],
+        exclude: /node_modules/,
+        use: [
+          'raw-loader',
+          'glslify-loader'
+        ]
       },
       {
         test: /\.(obj)$/,

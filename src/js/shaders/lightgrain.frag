@@ -1,9 +1,16 @@
 #define PHONG
+#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
+
 uniform vec3 diffuse;
 uniform vec3 emissive;
 uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
+
+uniform float uNoiseCoef;
+uniform float uNoiseMin;
+uniform float uNoiseMax;
+uniform vec2 uResolution;
 
 #include <common>
 #include <packing>
@@ -62,4 +69,13 @@ void main() {
 	#include <fog_fragment>
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>
+
+	float mdf = clamp(uNoiseMin, uNoiseMax, pow(outgoingLight, uNoiseCoef));
+  vec2 st = gl_FragCoord.xy / uResolution.xy;
+  st *= 55.; // old 55
+
+  vec3 textureNoise = vec3(snoise2(st) * .5 + .5);
+  textureNoise *= mdf;
+
+	gl_FragColor = vec4(textureNoise, 1.);
 }
