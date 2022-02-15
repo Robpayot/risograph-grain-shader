@@ -1,7 +1,6 @@
 const path = require('path')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const ImageminPlugin = require('imagemin-webpack-plugin').default
 
 const mode = process.env.NODE_ENV || 'production'
@@ -42,6 +41,15 @@ module.exports = {
         test: /\.(glsl|vs|fs|vert|frag)$/,
         use: ['webpack-glsl-loader'],
       },
+      {
+        test: /\.(obj)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: { name: 'models/[name].[ext]' },
+          },
+        ],
+      },
     ],
   },
   plugins: [
@@ -58,11 +66,5 @@ module.exports = {
         to: 'css',
       },
     ]),
-    new MiniCssExtractPlugin({
-      filename: isProd ? '[name].css' : '[name].css',
-      chunkFilename: '[id].css',
-      fallback: 'style-loader',
-      use: [{ loader: 'css-loader', options: { minimize: isProd } }],
-    }),
   ].concat(isProd ? prodPlugins : []),
 }

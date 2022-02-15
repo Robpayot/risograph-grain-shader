@@ -1,8 +1,13 @@
 import * as THREE from 'three'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'stats-js'
+import deer from '../../models/deer.obj'
+import glsl from 'glslify'
+import vertexShader from '~shaders/lightgrain.vert'
+import fragmentShader from '~shaders/lightgrain.frag'
 
-const ASSETS = 'img/'
+// const ASSETS = 'img/'
 
 export default class Scene {
   canvas
@@ -13,6 +18,14 @@ export default class Scene {
   stats
   width
   height
+  guiController = {
+    uLightIntensity: 2,
+    uNoiseCoef: 3.3,
+    uNoiseMin: 0.76,
+    uNoiseMax: 22.09,
+    uAlpha: false,
+    uFract: 2.0,
+  }
 
   constructor(el) {
     this.canvas = el
@@ -27,7 +40,11 @@ export default class Scene {
     this.setCamera()
     this.setControls()
     this.setAxesHelper()
+    this.setMaterial()
+    this.setLight()
     this.setBox()
+    this.setSphere()
+    this.setModel()
 
     this.handleResize()
 
@@ -64,7 +81,7 @@ export default class Scene {
    */
   setCamera() {
     const aspectRatio = this.width / this.height
-    const fieldOfView = 60
+    const fieldOfView = 70
     const nearPlane = 0.1
     const farPlane = 10000
 
@@ -94,6 +111,85 @@ export default class Scene {
     this.scene.add(axesHelper)
   }
 
+  setMaterial() {
+    this.currentColor = { r: 116, g: 156, b: 255 }
+    this.uniforms = {
+      uLightPos: {
+        value: [new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1)], // array of vec3
+      },
+      uLightColor: {
+        value: [new THREE.Color(0xffffff), new THREE.Color(0xffffff), new THREE.Color(0xffffff)], // color
+      },
+      uLightIntensity: {
+        value: this.guiController.uLightIntensity,
+      },
+      uNoiseCoef: {
+        value: this.guiController.uNoiseCoef,
+      },
+      uNoiseMin: {
+        value: this.guiController.uNoiseMin,
+      },
+      uNoiseMax: {
+        value: this.guiController.uNoiseMax,
+      },
+      uBgColor: {
+        value: new THREE.Color(this.currentColor.r / 255, this.currentColor.g / 255, this.currentColor.b / 255),
+      },
+      uColor: {
+        value: new THREE.Color(0x555555),
+      },
+      uAlpha: {
+        value: this.guiController.uAlpha,
+      },
+      uTime: {
+        value: 1.0,
+      },
+      uFract: {
+        value: this.guiController.uFract,
+      },
+      uResolution: {
+        value: new THREE.Vector2(window.innerWidth / 40, window.innerHeight / 40),
+      },
+      uPattern: {
+        value: this.guiController.uPattern,
+      },
+      uPlain: {
+        value: this.guiController.uPlain,
+      },
+    }
+
+    // const customUniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.phong.uniforms])
+    const customUniforms = THREE.UniformsUtils.merge([
+      THREE.ShaderLib.phong.uniforms,
+      { diffuse: { value: new THREE.Color(0xff0000) } },
+      { time: { value: 0.0 } },
+    ])
+
+    console.log(THREE.ShaderLib.phong.uniforms)
+
+    this.customMaterial = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: customUniforms,
+      lights: true,
+      // name: 'custom-material',
+    })
+    // this.grainMaterial = new THREE.MeshPhongMaterial({ color: 0x0000ff })
+    // this.grainMaterial.onBeforeCompile = shader => {
+    //   console.log(shader.vertexShader)
+
+    //   // shader.fragmentShader.replace()
+    // }
+
+    this.grainMaterial = this.customMaterial
+  }
+
+  setLight() {
+    const spotLight = new THREE.SpotLight(0xffffff)
+    spotLight.position.set(10, 10, 10)
+    this.scene.add(spotLight)
+  }
+
   /**
    * Create a BoxGeometry
    * https://threejs.org/docs/?q=box#api/en/geometries/BoxGeometry
@@ -102,10 +198,30 @@ export default class Scene {
    */
   setBox() {
     const geometry = new THREE.BoxGeometry(1, 1, 1)
-    const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
 
-    const mesh = new THREE.Mesh(geometry, material)
+    const mesh = new THREE.Mesh(geometry, this.grainMaterial)
+    mesh.position.z = 5
     this.scene.add(mesh)
+  }
+
+  setSphere() {
+    const geometry = new THREE.SphereGeometry(1, 32, 32)
+
+    const mesh = new THREE.Mesh(geometry, this.grainMaterial)
+    this.scene.add(mesh)
+  }
+
+  setModel() {
+    const objLoader = new OBJLoader()
+
+    objLoader.load(deer, obj => {
+      const { geometry } = obj.children[0]
+      const mesh = new THREE.Mesh(geometry, this.grainMaterial)
+      const s = 0.0025
+      mesh.scale.set(s, s, s)
+      mesh.position.z -= 5
+      this.scene.add(mesh)
+    })
   }
 
   /**
