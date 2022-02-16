@@ -3,12 +3,11 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import deer from '../../models/deer.obj'
 import glsl from 'glslify'
-import vertexShaderPhong from '~shaders/lightgrain.vert'
-import fragmentShaderPhong from '~shaders/lightgrain.frag'
-import vertexShader from '~shaders/grain.vert'
-import fragmentShader from '~shaders/grain.frag'
+import vertexShaderPhong from '../shaders/lightgrain.vert'
+import fragmentShaderPhong from '../shaders/lightgrain.frag'
 import Sphere from './sphere'
 import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
+import Cylinder from './cylinder'
 
 // const ASSETS = 'img/'
 
@@ -29,12 +28,11 @@ export default class Scene {
     y: 0,
   }
   guiController = {
-    uLightIntensity: 1.2,
+    uLightIntensity: 1.25,
     uNoiseCoef: 3.3,
     uNoiseMin: 0.76,
     uNoiseMax: 22.09,
     uAlpha: false,
-    uFract: 2.0,
   }
 
   constructor(el) {
@@ -48,11 +46,13 @@ export default class Scene {
     this.setRender()
     this.setCamera()
     this.setControls()
+    this.setContainer()
     // this.setAxesHelper()
     this.setMaterial()
     this.setLight()
     // this.setSphere()
     this.setSpheres()
+    this.setCylinders()
     this.setModel()
 
     this.handleResize()
@@ -79,6 +79,7 @@ export default class Scene {
   setScene() {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0xffffff)
+    this.scene.background = new THREE.TextureLoader().load('demo1/img/grey-gradient.jpg')
   }
 
   /**
@@ -96,8 +97,8 @@ export default class Scene {
 
     this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
     this.camera.position.y = 1.5
-    this.camera.position.x = 0
-    this.camera.position.z = 7
+    this.camera.position.x = 4
+    this.camera.position.z = 5.5
     // this.camera.lookAt(0, 0, 0)
 
     this.scene.add(this.camera)
@@ -112,6 +113,11 @@ export default class Scene {
     this.controls.autoRotate = true
   }
 
+  setContainer() {
+    this.container = new THREE.Object3D()
+    this.scene.add(this.container)
+  }
+
   /**
    * Axes Helper
    * https://threejs.org/docs/?q=Axesh#api/en/helpers/AxesHelper
@@ -123,38 +129,6 @@ export default class Scene {
 
   setMaterial() {
     this.currentColor = { r: 116, g: 156, b: 255 }
-    this.uniforms = {
-      uLightPos: {
-        value: [new THREE.Vector3(0, 5, 1), new THREE.Vector3(10, 5, 1), new THREE.Vector3(0, 10, 5)], // array of vec3
-      },
-      uLightColor: {
-        value: [new THREE.Color(0xffffff), new THREE.Color(0xffffff), new THREE.Color(0xffffff)], // color
-      },
-      uLightIntensity: {
-        value: this.guiController.uLightIntensity,
-      },
-      uNoiseCoef: {
-        value: this.guiController.uNoiseCoef,
-      },
-      uNoiseMin: {
-        value: this.guiController.uNoiseMin,
-      },
-      uNoiseMax: {
-        value: this.guiController.uNoiseMax,
-      },
-      uBgColor: {
-        value: new THREE.Color(this.currentColor.r / 255, this.currentColor.g / 255, this.currentColor.b / 255),
-      },
-      uColor: {
-        value: new THREE.Color(0x555555),
-      },
-      uAlpha: {
-        value: this.guiController.uAlpha,
-      },
-      uResolution: {
-        value: new THREE.Vector2(window.innerWidth / 40, window.innerHeight / 40),
-      },
-    }
 
     // const customUniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.phong.uniforms])
     const customUniforms = THREE.UniformsUtils.merge([
@@ -178,7 +152,7 @@ export default class Scene {
       },
       {
         uResolution: {
-          value: new THREE.Vector2(window.innerWidth / 40, window.innerHeight / 40),
+          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
         },
       },
     ])
@@ -188,22 +162,10 @@ export default class Scene {
       fragmentShader: glsl(fragmentShaderPhong),
       uniforms: customUniforms,
       lights: true,
-      // name: 'custom-material',
+      transparent: true,
     })
 
-    this.customMaterial = new THREE.RawShaderMaterial({
-      vertexShader: glsl(vertexShader),
-      fragmentShader: glsl(fragmentShader),
-      uniforms: this.uniforms,
-    })
-    // this.grainMaterial = new THREE.MeshPhongMaterial({ color: 0x0000ff })
-    // this.grainMaterial.onBeforeCompile = shader => {
-    //   console.log(shader.vertexShader)
-
-    //   // shader.fragmentShader.replace()
-    // }
-
-    this.grainMaterial = this.customMaterial
+    this.grainMaterial = this.customPhongMaterial
   }
 
   setLight() {
@@ -213,19 +175,34 @@ export default class Scene {
     this.scene.add(spotLight)
   }
 
+  setCylinders() {
+    const dist = 6
+
+    let angle = 0
+
+    for (let i = 0; i < 5; i++) {
+      const position = new THREE.Vector3(Math.cos(angle) * dist, -2, Math.sin(angle) * dist)
+      const scale = randFloat(1, 3)
+      const object3D = new Cylinder(this.grainMaterial, scale, position)
+
+      angle += degToRad(360 / 5)
+      this.container.add(object3D)
+    }
+  }
+
   setSpheres() {
     const dist = 3
-    const positions = [
-      new THREE.Vector3(-dist, randFloat(0, 2), dist),
-      new THREE.Vector3(dist, randFloat(0, 2), dist),
-      new THREE.Vector3(-dist, randFloat(0, 2), -dist),
-      new THREE.Vector3(dist, randFloat(0, 2), -dist),
-    ]
+
     this.spheres = []
 
-    for (let i = 0; i < 4; i++) {
+    let angle = 0
+
+    for (let i = 0; i < 5; i++) {
+      const position = new THREE.Vector3(Math.cos(angle) * dist, randFloat(-1, 1), Math.sin(angle) * dist)
       const scale = randFloat(0.3, 0.6)
-      const object3D = new Sphere(this.grainMaterial, scale, positions[i])
+      const object3D = new Sphere(this.grainMaterial, scale, position)
+
+      angle += degToRad(360 / 5)
       this.scene.add(object3D)
       this.spheres.push(object3D)
     }
@@ -249,7 +226,7 @@ export default class Scene {
       mesh.rotation.y += degToRad(-90)
       mesh.translateY(-2)
       // mesh.position.z -= 5
-      this.scene.add(mesh)
+      this.container.add(mesh)
 
       this.model = mesh
     })
@@ -282,9 +259,7 @@ export default class Scene {
       this.spheres[i].render(now, this.mouse)
     }
 
-    if (this.model) {
-      this.model.rotation.y = degToRad(-90 + 20 * this.mouse.x)
-    }
+    this.container.rotation.y = degToRad(20 * this.mouse.x)
 
     // if (this.controls) this.controls.update() // for damping
     this.renderer.render(this.scene, this.camera)

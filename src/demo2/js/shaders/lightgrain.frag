@@ -72,10 +72,12 @@ void main() {
 
 	float mdf = clamp(uNoiseMin, uNoiseMax, pow(outgoingLight.r, uNoiseCoef));
   vec2 st = gl_FragCoord.xy / uResolution.xy;
-  st *= 55.; // old 55
+  st *= 20000.; // old 55
 
   vec3 textureNoise = vec3(snoise2(st) * .5 + .5);
   textureNoise *= mdf;
 
 	gl_FragColor = vec4(textureNoise, 1.);
+
+	gl_FragColor.a = 1.0 - gl_FragColor.r;
 }

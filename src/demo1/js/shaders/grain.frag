@@ -76,7 +76,7 @@ void main(void) {
   // grain
   float mdf = clamp(uNoiseMin, uNoiseMax, pow(lightValue, uNoiseCoef));
   vec2 st = gl_FragCoord.xy / uResolution.xy;
-  st *= 55.; // old 555
+  st *= 100.; // old 555
 
   vec3 textureNoise = vec3(snoise2(st) * .5 + .5);
   textureNoise *= mdf;

@@ -21,7 +21,7 @@ export default class Sphere extends THREE.Object3D {
   }
 
   render(now, mouse) {
-    this.position.y = this.initY + Math.sin(now / this.invSpeed + this.offsetY) * 0.5 + mouse.y * this.coefX
+    this.position.y = this.initY + Math.sin(now / this.invSpeed + this.offsetY) * 0.5 + mouse.y * 0.2
     this.position.x = this.initX + mouse.x * this.coefX
   }
 }
