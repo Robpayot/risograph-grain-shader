@@ -1,13 +1,14 @@
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import Stats from 'stats-js'
 import deer from '../../models/deer.obj'
 import glsl from 'glslify'
 import vertexShaderPhong from '~shaders/lightgrain.vert'
 import fragmentShaderPhong from '~shaders/lightgrain.frag'
 import vertexShader from '~shaders/grain.vert'
 import fragmentShader from '~shaders/grain.frag'
+import Sphere from './sphere'
+import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
 
 // const ASSETS = 'img/'
 
@@ -17,11 +18,18 @@ export default class Scene {
   scene
   camera
   controls
-  stats
   width
   height
+  mouse = {
+    x: 0,
+    y: 0,
+  }
+  targetMouse = {
+    x: 0,
+    y: 0,
+  }
   guiController = {
-    uLightIntensity: 1,
+    uLightIntensity: 1.2,
     uNoiseCoef: 3.3,
     uNoiseMin: 0.76,
     uNoiseMax: 22.09,
@@ -36,16 +44,15 @@ export default class Scene {
   }
 
   init() {
-    this.setStats()
     this.setScene()
     this.setRender()
     this.setCamera()
     this.setControls()
-    this.setAxesHelper()
+    // this.setAxesHelper()
     this.setMaterial()
     this.setLight()
-    this.setBox()
-    this.setSphere()
+    // this.setSphere()
+    this.setSpheres()
     this.setModel()
 
     this.handleResize()
@@ -83,15 +90,15 @@ export default class Scene {
    */
   setCamera() {
     const aspectRatio = this.width / this.height
-    const fieldOfView = 70
+    const fieldOfView = 50
     const nearPlane = 0.1
     const farPlane = 10000
 
     this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.camera.position.y = 5
-    this.camera.position.x = 5
-    this.camera.position.z = 5
-    this.camera.lookAt(0, 0, 0)
+    this.camera.position.y = 1.5
+    this.camera.position.x = 0
+    this.camera.position.z = 7
+    // this.camera.lookAt(0, 0, 0)
 
     this.scene.add(this.camera)
   }
@@ -118,7 +125,7 @@ export default class Scene {
     this.currentColor = { r: 116, g: 156, b: 255 }
     this.uniforms = {
       uLightPos: {
-        value: [new THREE.Vector3(0, 5, 1), new THREE.Vector3(0, 10, 1), new THREE.Vector3(0, 10, 1)], // array of vec3
+        value: [new THREE.Vector3(0, 5, 1), new THREE.Vector3(10, 5, 1), new THREE.Vector3(0, 10, 5)], // array of vec3
       },
       uLightColor: {
         value: [new THREE.Color(0xffffff), new THREE.Color(0xffffff), new THREE.Color(0xffffff)], // color
@@ -206,18 +213,22 @@ export default class Scene {
     this.scene.add(spotLight)
   }
 
-  /**
-   * Create a BoxGeometry
-   * https://threejs.org/docs/?q=box#api/en/geometries/BoxGeometry
-   * with a Basic material
-   * https://threejs.org/docs/?q=mesh#api/en/materials/MeshBasicMaterial
-   */
-  setBox() {
-    const geometry = new THREE.BoxGeometry(1, 1, 1)
+  setSpheres() {
+    const dist = 3
+    const positions = [
+      new THREE.Vector3(-dist, randFloat(0, 2), dist),
+      new THREE.Vector3(dist, randFloat(0, 2), dist),
+      new THREE.Vector3(-dist, randFloat(0, 2), -dist),
+      new THREE.Vector3(dist, randFloat(0, 2), -dist),
+    ]
+    this.spheres = []
 
-    const mesh = new THREE.Mesh(geometry, this.grainMaterial)
-    mesh.position.z = 5
-    this.scene.add(mesh)
+    for (let i = 0; i < 4; i++) {
+      const scale = randFloat(0.3, 0.6)
+      const object3D = new Sphere(this.grainMaterial, scale, positions[i])
+      this.scene.add(object3D)
+      this.spheres.push(object3D)
+    }
   }
 
   setSphere() {
@@ -235,18 +246,13 @@ export default class Scene {
       const mesh = new THREE.Mesh(geometry, this.grainMaterial)
       const s = 0.0025
       mesh.scale.set(s, s, s)
-      mesh.position.z -= 5
+      mesh.rotation.y += degToRad(-90)
+      mesh.translateY(-2)
+      // mesh.position.z -= 5
       this.scene.add(mesh)
-    })
-  }
 
-  /**
-   * Build stats to display fps
-   */
-  setStats() {
-    this.stats = new Stats()
-    this.stats.showPanel(0)
-    document.body.appendChild(this.stats.dom)
+      this.model = mesh
+    })
   }
 
   /**
@@ -254,6 +260,7 @@ export default class Scene {
    */
   events() {
     window.addEventListener('resize', this.handleResize, { passive: true })
+    window.addEventListener('mousemove', this.handleMousemove, { passive: true })
     this.draw(0)
   }
 
@@ -267,13 +274,31 @@ export default class Scene {
    */
   draw = now => {
     // now: time in ms
-    this.stats.begin()
 
-    if (this.controls) this.controls.update() // for damping
+    this.mouse.x = lerp(this.mouse.x, this.targetMouse.x, 0.1)
+    this.mouse.y = lerp(this.mouse.y, this.targetMouse.y, 0.1)
+
+    for (let i = 0; i < this.spheres.length; i++) {
+      this.spheres[i].render(now, this.mouse)
+    }
+
+    if (this.model) {
+      this.model.rotation.y = degToRad(-90 + 20 * this.mouse.x)
+    }
+
+    // if (this.controls) this.controls.update() // for damping
     this.renderer.render(this.scene, this.camera)
 
-    this.stats.end()
     this.raf = window.requestAnimationFrame(this.draw)
+  }
+
+  // EVENTS
+  handleMousemove = e => {
+    const x = (e.clientX / window.innerWidth) * 2 - 1
+    const y = -(e.clientY / window.innerHeight) * 2 + 1
+
+    this.targetMouse.x = x
+    this.targetMouse.y = y
   }
 
   /**
