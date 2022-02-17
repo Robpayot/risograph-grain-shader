@@ -8,6 +8,7 @@ import fragmentShader from '../shaders/grain.frag'
 import Sphere from './sphere'
 import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
 import Cylinder from './cylinder'
+import { GUI } from 'dat.gui'
 
 // const ASSETS = 'img/'
 
@@ -28,11 +29,13 @@ export default class Scene {
     y: 0,
   }
   guiController = {
-    uLightIntensity: 1.25,
+    uLightIntensity: 1,
     uNoiseCoef: 3.3,
     uNoiseMin: 0.76,
-    uNoiseMax: 22.09,
+    uNoiseMax: 4,
     uAlpha: false,
+    light1X: 0.7,
+    light2X: 8,
   }
 
   constructor(el) {
@@ -53,6 +56,7 @@ export default class Scene {
     this.setSpheres()
     this.setCylinders()
     this.setModel()
+    this.setGUI()
 
     this.handleResize()
 
@@ -126,14 +130,53 @@ export default class Scene {
     this.scene.add(axesHelper)
   }
 
+  setGUI() {
+    const gui = new GUI()
+
+    const lightsFolder = gui.addFolder('Lights position X')
+    lightsFolder
+      .add(this.guiController, 'light1X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder
+      .add(this.guiController, 'light2X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder.open()
+
+    const grainFolder = gui.addFolder('Grain')
+    grainFolder
+      .add(this.guiController, 'uNoiseCoef', 0, 20)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder
+      .add(this.guiController, 'uNoiseMin', 0, 1)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder
+      .add(this.guiController, 'uNoiseMax', 0, 5)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder.open()
+  }
+
+  guiChange = () => {
+    this.uniforms.uNoiseCoef.value = this.guiController.uNoiseCoef
+    this.uniforms.uNoiseMin.value = this.guiController.uNoiseMin
+    this.uniforms.uNoiseMax.value = this.guiController.uNoiseMax
+
+    this.uniforms.uLightPos.value[0].x = this.guiController.light1X
+    this.uniforms.uLightPos.value[1].x = this.guiController.light2X
+  }
+
   setMaterial() {
     this.currentColor = { r: 116, g: 156, b: 255 }
     this.uniforms = {
       uLightPos: {
-        value: [new THREE.Vector3(0, 5, 1), new THREE.Vector3(10, 5, 1), new THREE.Vector3(0, 10, 10)], // array of vec3
+        value: [new THREE.Vector3(0, 3, 1), new THREE.Vector3(10, 3, 1), new THREE.Vector3(0, 10, 10)], // array of vec3
       },
       uLightColor: {
-        value: [new THREE.Color(0xffffff), new THREE.Color(0xffffff), new THREE.Color(0xffffff)], // color
+        value: [new THREE.Color(0x555555), new THREE.Color(0x555555), new THREE.Color(0x555555)], // color
       },
       uLightIntensity: {
         value: this.guiController.uLightIntensity,

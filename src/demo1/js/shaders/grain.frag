@@ -21,52 +21,65 @@ varying vec3 vVertex;
 varying vec3 vLightPos[3];
 varying vec2 vUv;
 
+const float shininess = 1.;
+
 //-------------------------------------------------------------------------
 // Given a normal vector and a light,
 // calculate the fragment's color using diffuse and specular lighting.
-vec3 light_calculations(vec3 fragment_normal, vec3 lightPos, vec3 lightColor) {
 
-  vec3 diffuse_color;
-  vec3 to_light;
-  float cos_angle;
-  vec3 color;
+vec3 phong(vec3 normal, vec3 lightPos, vec3 lightColor) {
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // General calculations needed for both specular and diffuse lighting
+  vec3 s = normalize(vec3(lightPos) - vVertex);
+  vec3 v = normalize(vec3(-vVertex));
+  vec3 r = reflect(-s, normal);
 
-  // Calculate a vector from the fragment location to the light source
-  to_light = lightPos - vVertex;
-  to_light = normalize( to_light );
+  vec3 ambient = lightColor;
+  vec3 diffuse = lightColor * max(dot(s, normal), 0.0);
+  vec3 specular = lightColor * pow(max(dot(r, v), 0.0), shininess);
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  // DIFFUSE  calculations
+  return uLightIntensity * (ambient + diffuse);
 
-  // Calculate the cosine of the angle between the vertex's normal
-  // vector and the vector going to the light.
-  cos_angle = dot(fragment_normal, to_light);
-  cos_angle = clamp(cos_angle, 0.0, 1.0);
+  // vec3 diffuse_color;
+  // vec3 to_light;
+  // float cos_angle;
+  // vec3 color;
 
-  // Scale the color of this fragment based on its angle to the light.
-  diffuse_color = uColor * lightColor * cos_angle * uLightIntensity;
+  // //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // // General calculations needed for both specular and diffuse lighting
 
-  // Combine
-  color = diffuse_color;
+  // // Calculate a vector from the fragment location to the light source
+  // to_light = lightPos - vVertex;
+  // to_light = normalize( to_light );
 
-  return color;
+  // //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  // // DIFFUSE  calculations
+
+  // // Calculate the cosine of the angle between the vertex's normal
+  // // vector and the vector going to the light.
+  // cos_angle = dot(fragment_normal, to_light);
+  // cos_angle = clamp(cos_angle, 0.0, 1.0);
+
+  // // Scale the color of this fragment based on its angle to the light.
+  // diffuse_color = uColor * lightColor * cos_angle * uLightIntensity;
+
+  // // Combine
+  // color = diffuse_color;
+
+  // return color;
 }
 
 void main(void) {
   float ambient = uLightIntensity;
   vec3 normal = normalize(vNormal);
-  vec3 color = uColor;
+  vec3 color = vec3(0.);
 
   // for each light...
-  for(int i = 0; i < 3; i++) {
-    color = color + light_calculations(normal, vLightPos[i], uLightColor[i]);
+  for(int i = 0; i < 2; i++) {
+    color += phong(normal, vLightPos[i], uLightColor[i]);
   }
 
   // Add ambient light intensity
-  color *= ambient;
+  // color *= ambient;
 
   // grain
   // Calculate noise and sample texture
@@ -75,10 +88,10 @@ void main(void) {
 
   // grain
   float mdf = clamp(uNoiseMin, uNoiseMax, pow(lightValue, uNoiseCoef));
-  vec2 st = gl_FragCoord.xy / uResolution.xy;
-  st *= 100.; // old 555
+  vec2 uv = gl_FragCoord.xy / uResolution.xy;
+  uv *= 100.; // old 555
 
-  vec3 textureNoise = vec3(snoise2(st) * .5 + .5);
+  vec3 textureNoise = vec3(snoise2(uv) * 0.5 + .5);
   textureNoise *= mdf;
 
   gl_FragColor = vec4(textureNoise, 1.);

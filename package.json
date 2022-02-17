@@ -18,6 +18,7 @@
     "IE 10"
   ],
   "dependencies": {
+    "dat.gui": "^0.7.7",
     "glsl-noise": "^0.0.0",
     "three": "^0.137.5"
   },

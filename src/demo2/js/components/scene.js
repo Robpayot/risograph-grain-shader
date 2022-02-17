@@ -1,13 +1,14 @@
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import deer from '../../models/deer.obj'
+import deer from '../../models/wolf.obj'
 import glsl from 'glslify'
 import vertexShaderPhong from '../shaders/lightgrain.vert'
 import fragmentShaderPhong from '../shaders/lightgrain.frag'
 import Sphere from './sphere'
 import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
-import Cylinder from './cylinder'
+import Box from './box'
+import { GUI } from 'dat.gui'
 
 // const ASSETS = 'img/'
 
@@ -33,6 +34,8 @@ export default class Scene {
     uNoiseMin: 0.76,
     uNoiseMax: 22.09,
     uAlpha: false,
+    light1X: 10,
+    light2X: 10,
   }
 
   constructor(el) {
@@ -52,8 +55,9 @@ export default class Scene {
     this.setLight()
     // this.setSphere()
     this.setSpheres()
-    this.setCylinders()
+    this.setBoxs()
     this.setModel()
+    this.setGUI()
 
     this.handleResize()
 
@@ -118,23 +122,50 @@ export default class Scene {
     this.scene.add(this.container)
   }
 
-  /**
-   * Axes Helper
-   * https://threejs.org/docs/?q=Axesh#api/en/helpers/AxesHelper
-   */
-  setAxesHelper() {
-    const axesHelper = new THREE.AxesHelper(3)
-    this.scene.add(axesHelper)
+  setGUI() {
+    const gui = new GUI()
+
+    const lightsFolder = gui.addFolder('Lights position X')
+    lightsFolder
+      .add(this.guiController, 'light1X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder
+      .add(this.guiController, 'light2X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder.open()
+
+    const grainFolder = gui.addFolder('Grain')
+    grainFolder
+      .add(this.guiController, 'uNoiseCoef', 0, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder
+      .add(this.guiController, 'uNoiseMin', 0, 1)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder
+      .add(this.guiController, 'uNoiseMax', 0, 30)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder.open()
+  }
+
+  guiChange = () => {
+    this.uniforms.uNoiseCoef.value = this.guiController.uNoiseCoef
+    this.uniforms.uNoiseMin.value = this.guiController.uNoiseMin
+    this.uniforms.uNoiseMax.value = this.guiController.uNoiseMax
+    this.lights[0].position.x = this.guiController.light1X
+    this.lights[1].position.x = this.guiController.light2X
   }
 
   setMaterial() {
     this.currentColor = { r: 116, g: 156, b: 255 }
 
     // const customUniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.phong.uniforms])
-    const customUniforms = THREE.UniformsUtils.merge([
+    this.uniforms = THREE.UniformsUtils.merge([
       THREE.ShaderLib.phong.uniforms,
-      { diffuse: { value: new THREE.Color(0xff0000) } },
-      { time: { value: 0.0 } },
       {
         uNoiseMin: {
           value: this.guiController.uNoiseMin,
@@ -160,7 +191,7 @@ export default class Scene {
     this.customPhongMaterial = new THREE.ShaderMaterial({
       vertexShader: glsl(vertexShaderPhong),
       fragmentShader: glsl(fragmentShaderPhong),
-      uniforms: customUniforms,
+      uniforms: this.uniforms,
       lights: true,
       transparent: true,
     })
@@ -169,13 +200,18 @@ export default class Scene {
   }
 
   setLight() {
-    const spotLight = new THREE.SpotLight(0xff0000)
-    spotLight.position.set(10, 10, 10)
-    spotLight.intensity = 2
-    this.scene.add(spotLight)
+    this.lights = []
+
+    for (let i = 0; i < 2; i++) {
+      const spotLight = new THREE.SpotLight(0xff0000)
+      spotLight.position.set(10, 10, 10)
+      spotLight.intensity = 1
+      this.lights.push(spotLight)
+      this.scene.add(spotLight)
+    }
   }
 
-  setCylinders() {
+  setBoxs() {
     const dist = 6
 
     let angle = 0
@@ -183,7 +219,7 @@ export default class Scene {
     for (let i = 0; i < 5; i++) {
       const position = new THREE.Vector3(Math.cos(angle) * dist, -2, Math.sin(angle) * dist)
       const scale = randFloat(1, 3)
-      const object3D = new Cylinder(this.grainMaterial, scale, position)
+      const object3D = new Box(this.grainMaterial, scale, position)
 
       angle += degToRad(360 / 5)
       this.container.add(object3D)
@@ -197,12 +233,12 @@ export default class Scene {
 
     let angle = 0
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const position = new THREE.Vector3(Math.cos(angle) * dist, randFloat(-1, 1), Math.sin(angle) * dist)
-      const scale = randFloat(0.3, 0.6)
+      const scale = randFloat(0.6, 0.9)
       const object3D = new Sphere(this.grainMaterial, scale, position)
 
-      angle += degToRad(360 / 5)
+      angle += degToRad(360 / 3)
       this.scene.add(object3D)
       this.spheres.push(object3D)
     }
@@ -221,7 +257,7 @@ export default class Scene {
     objLoader.load(deer, obj => {
       const { geometry } = obj.children[0]
       const mesh = new THREE.Mesh(geometry, this.grainMaterial)
-      const s = 0.0025
+      const s = 0.0035
       mesh.scale.set(s, s, s)
       mesh.rotation.y += degToRad(-90)
       mesh.translateY(-2)
