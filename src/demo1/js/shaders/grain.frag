@@ -9,19 +9,14 @@ uniform float uNoiseCoef;
 uniform float uNoiseMin;
 uniform float uNoiseMax;
 uniform vec3 uBgColor;
+uniform float uNoiseScale;
 // uniform float uTime;
 uniform bool uAlpha;
-uniform bool uPattern;
-uniform bool uPlain;
-uniform float uFract;
-uniform vec2 uResolution;
 
 varying vec3 vNormal;
 varying vec3 vVertex;
-varying vec3 vLightPos[3];
-varying vec2 vUv;
+varying vec3 vLightPos[2];
 
-const float shininess = 1.;
 
 //-------------------------------------------------------------------------
 // Given a normal vector and a light,
@@ -35,9 +30,9 @@ vec3 phong(vec3 normal, vec3 lightPos, vec3 lightColor) {
 
   vec3 ambient = lightColor;
   vec3 diffuse = lightColor * max(dot(s, normal), 0.0);
-  vec3 specular = lightColor * pow(max(dot(r, v), 0.0), shininess);
+  // vec3 specular = lightColor * pow(max(dot(r, v), 0.0), shininess);
 
-  return uLightIntensity * (ambient + diffuse);
+  return (ambient + diffuse);
 
   // vec3 diffuse_color;
   // vec3 to_light;
@@ -78,6 +73,8 @@ void main(void) {
     color += phong(normal, vLightPos[i], uLightColor[i]);
   }
 
+  color *= uLightIntensity;
+
   // Add ambient light intensity
   // color *= ambient;
 
@@ -86,12 +83,17 @@ void main(void) {
   // color.g = light intensity
   float lightValue = color.r;
 
-  // grain
-  float mdf = clamp(uNoiseMin, uNoiseMax, pow(lightValue, uNoiseCoef));
-  vec2 uv = gl_FragCoord.xy / uResolution.xy;
-  uv *= 100.; // old 555
+
+  vec2 uv = gl_FragCoord.xy;
+  // float ratio = uResolution.y / uResolution.x;
+  // float ratioSquare = 1.;
+  // adapting to square
+  // uv.y *= ratio / ratioSquare;
+  uv /= uNoiseScale; // old 555
 
   vec3 textureNoise = vec3(snoise2(uv) * 0.5 + .5);
+    // grain
+  float mdf = clamp(uNoiseMin, uNoiseMax, pow(lightValue, uNoiseCoef));
   textureNoise *= mdf;
 
   gl_FragColor = vec4(textureNoise, 1.);
