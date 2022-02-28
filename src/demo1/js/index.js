@@ -1,7 +1,3 @@
-// Managers
-// import './managers/RAFManager'
-// import './managers/ResizeManager'
-
 // Scene
 import Scene from './components/scene'
 

@@ -10,8 +10,6 @@ import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
 import Cylinder from './cylinder'
 import { GUI } from 'dat.gui'
 
-// const ASSETS = 'img/'
-
 export default class Scene {
   canvas
   renderer
@@ -50,9 +48,7 @@ export default class Scene {
     this.setCamera()
     this.setControls()
     this.setContainer()
-    // this.setAxesHelper()
     this.setMaterial()
-    // this.setSphere()
     this.setSpheres()
     this.setCylinders()
     this.setModel()
@@ -82,7 +78,7 @@ export default class Scene {
   setScene() {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0xffffff)
-    this.scene.background = new THREE.TextureLoader().load('demo1/img/grey-gradient.jpg')
+    this.scene.background = new THREE.TextureLoader().load('demo1/img/grey-gradient.png')
   }
 
   /**
@@ -99,10 +95,7 @@ export default class Scene {
     const farPlane = 10000
 
     this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.camera.position.y = 1.5
-    this.camera.position.x = 4
-    this.camera.position.z = 5.5
-    // this.camera.lookAt(0, 0, 0)
+    this.camera.position.set(4, 1.5, 5.5)
 
     this.scene.add(this.camera)
   }
@@ -116,20 +109,9 @@ export default class Scene {
     this.controls.autoRotate = true
   }
 
-  setContainer() {
-    this.container = new THREE.Object3D()
-    this.scene.add(this.container)
-  }
-
   /**
-   * Axes Helper
-   * https://threejs.org/docs/?q=Axesh#api/en/helpers/AxesHelper
+   * For the GUI at the top right bottom of the screen
    */
-  setAxesHelper() {
-    const axesHelper = new THREE.AxesHelper(3)
-    this.scene.add(axesHelper)
-  }
-
   setGUI() {
     const gui = new GUI()
 
@@ -154,7 +136,7 @@ export default class Scene {
       .step(0.1)
       .onChange(this.guiChange)
     grainFolder
-      .add(this.guiController, 'uNoiseMax', 0, 5)
+      .add(this.guiController, 'uNoiseMax', 0, 22)
       .step(0.1)
       .onChange(this.guiChange)
     grainFolder
@@ -164,6 +146,9 @@ export default class Scene {
     grainFolder.open()
   }
 
+  /**
+   * GUI handle functions
+   */
   guiChange = () => {
     this.uniforms.uNoiseCoef.value = this.guiController.uNoiseCoef
     this.uniforms.uNoiseMin.value = this.guiController.uNoiseMin
@@ -174,14 +159,17 @@ export default class Scene {
     this.uniforms.uLightPos.value[1].x = this.guiController.light2X
   }
 
+  /**
+   * Here will set our main Risopgrah grain material
+   * https://threejs.org/docs/?q=ShaderMaterial#api/en/materials/ShaderMaterial
+   */
   setMaterial() {
-    this.currentColor = { r: 116, g: 156, b: 255 }
     this.uniforms = {
       uLightPos: {
         value: [new THREE.Vector3(0, 3, 1), new THREE.Vector3(10, 3, 1)], // array of vec3
       },
       uLightColor: {
-        value: [new THREE.Color(0x555555), new THREE.Color(0x555555), new THREE.Color(0x555555)], // color
+        value: [new THREE.Color(0x555555), new THREE.Color(0x555555)], // color
       },
       uLightIntensity: {
         value: this.guiController.uLightIntensity,
@@ -198,15 +186,12 @@ export default class Scene {
       uNoiseScale: {
         value: this.guiController.uNoiseScale,
       },
-      uBgColor: {
-        value: new THREE.Color(this.currentColor.r / 255, this.currentColor.g / 255, this.currentColor.b / 255),
-      },
       uColor: {
-        value: new THREE.Color(0x555555),
+        value: new THREE.Color(0x749bff),
       },
     }
 
-    this.customMaterial = new THREE.RawShaderMaterial({
+    this.customMaterial = new THREE.ShaderMaterial({
       vertexShader: glsl(vertexShader),
       fragmentShader: glsl(fragmentShader),
       uniforms: this.uniforms,
@@ -215,9 +200,17 @@ export default class Scene {
     this.grainMaterial = this.customMaterial
   }
 
+  /**
+   * This is our global container that will contain every mesh of our scene
+   * https://threejs.org/docs/#api/en/core/Object3D
+   */
+  setContainer() {
+    this.container = new THREE.Object3D()
+    this.scene.add(this.container)
+  }
+
   setCylinders() {
     const dist = 6
-
     let angle = 0
 
     for (let i = 0; i < 5; i++) {
@@ -248,13 +241,6 @@ export default class Scene {
     }
   }
 
-  setSphere() {
-    const geometry = new THREE.SphereGeometry(1, 32, 32)
-
-    const mesh = new THREE.Mesh(geometry, this.grainMaterial)
-    this.scene.add(mesh)
-  }
-
   setModel() {
     const objLoader = new OBJLoader()
 
@@ -265,7 +251,6 @@ export default class Scene {
       mesh.scale.set(s, s, s)
       mesh.rotation.y += degToRad(-90)
       mesh.translateY(-2)
-      // mesh.position.z -= 5
       this.container.add(mesh)
 
       this.model = mesh
@@ -301,7 +286,6 @@ export default class Scene {
 
     this.container.rotation.y = degToRad(20 * this.mouse.x)
 
-    // if (this.controls) this.controls.update() // for damping
     this.renderer.render(this.scene, this.camera)
 
     this.raf = window.requestAnimationFrame(this.draw)
@@ -328,9 +312,7 @@ export default class Scene {
     this.camera.aspect = this.width / this.height
     this.camera.updateProjectionMatrix()
 
-    const DPR = window.devicePixelRatio ? window.devicePixelRatio : 1
-
-    this.renderer.setPixelRatio(DPR)
+    this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setSize(this.width, this.height)
   }
 }

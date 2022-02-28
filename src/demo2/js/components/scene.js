@@ -1,16 +1,13 @@
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import deer from '../../models/wolf.obj'
+import wolf from '../../models/wolf.obj'
 import glsl from 'glslify'
-import vertexShaderPhong from '../shaders/lightgrain.vert'
-import fragmentShaderPhong from '../shaders/lightgrain.frag'
+import fragmentShaderLambert from '../shaders/grain.frag'
 import Sphere from './sphere'
 import { degToRad, lerp, randFloat } from 'three/src/math/MathUtils'
 import Box from './box'
 import { GUI } from 'dat.gui'
-
-// const ASSETS = 'img/'
 
 export default class Scene {
   canvas
@@ -29,11 +26,10 @@ export default class Scene {
     y: 0,
   }
   guiController = {
-    uLightIntensity: 1.25,
-    uNoiseCoef: 3.3,
-    uNoiseMin: 0.76,
+    uNoiseCoef: 2.1,
+    uNoiseMin: 0.5,
     uNoiseMax: 22.09,
-    uAlpha: false,
+    uNoiseScale: 0.8,
     light1X: 10,
     light2X: 10,
   }
@@ -50,10 +46,8 @@ export default class Scene {
     this.setCamera()
     this.setControls()
     this.setContainer()
-    // this.setAxesHelper()
-    this.setMaterial()
     this.setLight()
-    // this.setSphere()
+    this.setMaterial()
     this.setSpheres()
     this.setBoxs()
     this.setModel()
@@ -83,7 +77,7 @@ export default class Scene {
   setScene() {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0xffffff)
-    this.scene.background = new THREE.TextureLoader().load('demo1/img/grey-gradient.jpg')
+    this.scene.background = new THREE.TextureLoader().load('demo2/img/grey-gradient2.png')
   }
 
   /**
@@ -100,10 +94,7 @@ export default class Scene {
     const farPlane = 10000
 
     this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.camera.position.y = 1.5
-    this.camera.position.x = 4
-    this.camera.position.z = 5.5
-    // this.camera.lookAt(0, 0, 0)
+    this.camera.position.set(4, 1.5, 5.5)
 
     this.scene.add(this.camera)
   }
@@ -117,28 +108,15 @@ export default class Scene {
     this.controls.autoRotate = true
   }
 
-  setContainer() {
-    this.container = new THREE.Object3D()
-    this.scene.add(this.container)
-  }
-
+  /**
+   * For the GUI at the top right bottom of the screen
+   */
   setGUI() {
     const gui = new GUI()
 
-    const lightsFolder = gui.addFolder('Lights position X')
-    lightsFolder
-      .add(this.guiController, 'light1X', -10, 10)
-      .step(0.1)
-      .onChange(this.guiChange)
-    lightsFolder
-      .add(this.guiController, 'light2X', -10, 10)
-      .step(0.1)
-      .onChange(this.guiChange)
-    lightsFolder.open()
-
     const grainFolder = gui.addFolder('Grain')
     grainFolder
-      .add(this.guiController, 'uNoiseCoef', 0, 10)
+      .add(this.guiController, 'uNoiseCoef', 0, 20)
       .step(0.1)
       .onChange(this.guiChange)
     grainFolder
@@ -146,26 +124,33 @@ export default class Scene {
       .step(0.1)
       .onChange(this.guiChange)
     grainFolder
-      .add(this.guiController, 'uNoiseMax', 0, 30)
+      .add(this.guiController, 'uNoiseMax', 0, 22)
+      .step(0.1)
+      .onChange(this.guiChange)
+    grainFolder
+      .add(this.guiController, 'uNoiseScale', 0, 6)
       .step(0.1)
       .onChange(this.guiChange)
     grainFolder.open()
   }
 
+  /**
+   * GUI handle functions
+   */
   guiChange = () => {
     this.uniforms.uNoiseCoef.value = this.guiController.uNoiseCoef
     this.uniforms.uNoiseMin.value = this.guiController.uNoiseMin
     this.uniforms.uNoiseMax.value = this.guiController.uNoiseMax
-    this.lights[0].position.x = this.guiController.light1X
-    this.lights[1].position.x = this.guiController.light2X
+    this.uniforms.uNoiseScale.value = this.guiController.uNoiseScale
   }
 
+  /**
+   * Here will set our main Risopgrah grain material
+   * https://threejs.org/docs/?q=ShaderMaterial#api/en/materials/ShaderMaterial
+   */
   setMaterial() {
-    this.currentColor = { r: 116, g: 156, b: 255 }
-
-    // const customUniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.phong.uniforms])
     this.uniforms = THREE.UniformsUtils.merge([
-      THREE.ShaderLib.phong.uniforms,
+      THREE.ShaderLib.lambert.uniforms,
       {
         uNoiseMin: {
           value: this.guiController.uNoiseMin,
@@ -182,30 +167,37 @@ export default class Scene {
         },
       },
       {
-        uResolution: {
-          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+        uNoiseScale: {
+          value: this.guiController.uNoiseScale,
         },
       },
     ])
 
-    this.customPhongMaterial = new THREE.ShaderMaterial({
-      vertexShader: glsl(vertexShaderPhong),
-      fragmentShader: glsl(fragmentShaderPhong),
+    this.customMaterial = new THREE.ShaderMaterial({
+      vertexShader: THREE.ShaderLib.lambert.vertexShader,
+      fragmentShader: glsl(fragmentShaderLambert),
       uniforms: this.uniforms,
       lights: true,
       transparent: true,
     })
+  }
 
-    this.grainMaterial = this.customPhongMaterial
+  /**
+   * This is our global container that will contain every mesh of our scene
+   * https://threejs.org/docs/#api/en/core/Object3D
+   */
+  setContainer() {
+    this.container = new THREE.Object3D()
+    this.scene.add(this.container)
   }
 
   setLight() {
     this.lights = []
 
     for (let i = 0; i < 2; i++) {
-      const spotLight = new THREE.SpotLight(0xff0000)
+      const spotLight = new THREE.SpotLight(0xffffff)
       spotLight.position.set(10, 10, 10)
-      spotLight.intensity = 1
+      spotLight.intensity = 1.1
       this.lights.push(spotLight)
       this.scene.add(spotLight)
     }
@@ -219,7 +211,7 @@ export default class Scene {
     for (let i = 0; i < 5; i++) {
       const position = new THREE.Vector3(Math.cos(angle) * dist, -2, Math.sin(angle) * dist)
       const scale = randFloat(1, 3)
-      const object3D = new Box(this.grainMaterial, scale, position)
+      const object3D = new Box(this.customMaterial, scale, position)
 
       angle += degToRad(360 / 5)
       this.container.add(object3D)
@@ -236,7 +228,7 @@ export default class Scene {
     for (let i = 0; i < 3; i++) {
       const position = new THREE.Vector3(Math.cos(angle) * dist, randFloat(-1, 1), Math.sin(angle) * dist)
       const scale = randFloat(0.6, 0.9)
-      const object3D = new Sphere(this.grainMaterial, scale, position)
+      const object3D = new Sphere(this.customMaterial, scale, position)
 
       angle += degToRad(360 / 3)
       this.scene.add(object3D)
@@ -244,19 +236,12 @@ export default class Scene {
     }
   }
 
-  setSphere() {
-    const geometry = new THREE.SphereGeometry(1, 32, 32)
-
-    const mesh = new THREE.Mesh(geometry, this.grainMaterial)
-    this.scene.add(mesh)
-  }
-
   setModel() {
     const objLoader = new OBJLoader()
 
-    objLoader.load(deer, obj => {
+    objLoader.load(wolf, obj => {
       const { geometry } = obj.children[0]
-      const mesh = new THREE.Mesh(geometry, this.grainMaterial)
+      const mesh = new THREE.Mesh(geometry, this.customMaterial)
       const s = 0.0035
       mesh.scale.set(s, s, s)
       mesh.rotation.y += degToRad(-90)
@@ -297,7 +282,6 @@ export default class Scene {
 
     this.container.rotation.y = degToRad(20 * this.mouse.x)
 
-    // if (this.controls) this.controls.update() // for damping
     this.renderer.render(this.scene, this.camera)
 
     this.raf = window.requestAnimationFrame(this.draw)
