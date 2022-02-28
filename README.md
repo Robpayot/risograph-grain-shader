@@ -1,15 +1,6 @@
-*How to use this template:*
+# Risograph grain effect in Three.js
 
-- The general styles for the demo page are in css/base.css
-- The README.md can be used to add credits of resources used
-- For writing the tutorial, take a look at https://github.com/crnacura/CodropsTemplate/wiki/Writing-the-article
-- Delete this 'how to' in the final version and leave the following (fill in title/description, credits and social links, we'll do the rest):
-
--------
-
-# The Title
-
-*A description of the demo goes here.*
+This demo shows 2 ways of creating a risograph 2D grain effect reacting to light reflection on 3D objects using Three.js. The first way is using a custom shader (fragment and vertex). The second way is reusing the MeshLambertMaterial shader and applies 2D grain effect on the fragment shader, it's also using a transparent effect.
 
 ![Image Title](https://generative-placeholders.glitch.me/image?width=800&height=600")
 
@@ -40,11 +31,11 @@ npm run build
 
 ## Credits
 
-- Images from [Unsplash](https://unsplash.com/)
+- Some part of shaders comes from [webglfundamentals](https://webglfundamentals.org/webgl/lessons/webgl-3d-lighting-point.html)
 
 ## Misc
 
-Follow *Author*: [Twitter](), [Dribbble](), [Google+](), [GitHub]() 
+Follow *Robin Payot*: [Twitter](https://twitter.com/RobinPayot), [GitHub](https://github.com/Robpayot)
 
 Follow Codrops: [Twitter](http://www.twitter.com/codrops), [Facebook](http://www.facebook.com/codrops), [GitHub](https://github.com/codrops), [Instagram](https://www.instagram.com/codropsss/)
 
@@ -52,8 +43,3 @@ Follow Codrops: [Twitter](http://www.twitter.com/codrops), [Facebook](http://www
 [MIT](LICENSE)
 
 Made with :blue_heart:  by [Codrops](http://www.codrops.com)
-
-
-
-
-
