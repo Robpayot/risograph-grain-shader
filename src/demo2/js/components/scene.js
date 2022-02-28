@@ -114,6 +114,17 @@ export default class Scene {
   setGUI() {
     const gui = new GUI()
 
+    const lightsFolder = gui.addFolder('Lights position X')
+    lightsFolder
+      .add(this.guiController, 'light1X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder
+      .add(this.guiController, 'light2X', -10, 10)
+      .step(0.1)
+      .onChange(this.guiChange)
+    lightsFolder.open()
+
     const grainFolder = gui.addFolder('Grain')
     grainFolder
       .add(this.guiController, 'uNoiseCoef', 0, 20)
@@ -142,6 +153,9 @@ export default class Scene {
     this.uniforms.uNoiseMin.value = this.guiController.uNoiseMin
     this.uniforms.uNoiseMax.value = this.guiController.uNoiseMax
     this.uniforms.uNoiseScale.value = this.guiController.uNoiseScale
+
+    this.lights[0].position.x = this.guiController.light1X
+    this.lights[1].position.x = this.guiController.light2X
   }
 
   /**
