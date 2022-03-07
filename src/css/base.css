@@ -90,6 +90,10 @@ a:focus-visible {
 	background: transparent;
 }
 
+.dg.ac {
+	z-index: 2000 !important;
+}
+
 .hover-line {
 	white-space: nowrap;
 	overflow: hidden;
@@ -126,10 +130,12 @@ a:focus-visible {
 }
 
 .frame {
-	padding: 1rem;
+	padding: 3rem 1rem;
 	text-align: center;
 	position: relative;
-	z-index: 1000;
+	z-index: 100;
+	position: fixed;
+	width: 100%;
 }
 
 .frame__title {
@@ -175,9 +181,7 @@ a:focus-visible {
 
 @media screen and (min-width: 53em) {
 	.frame {
-		position: fixed;
 		text-align: left;
-		z-index: 100;
 		top: 0;
 		left: 0;
 		display: grid;
